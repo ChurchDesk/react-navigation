@@ -83,9 +83,12 @@ export default function getPathFromState(
   } else {
     if (options !== undefined) {
       warnMigratePathConfig();
+      // @ts-ignore
+      configs = createNormalizedConfigs(options);
+    } else {
+      configs = {};
     }
-    // @ts-ignore
-    configs = createNormalizedConfigs(options);
+
     legacy = true;
   }
 

@@ -61,7 +61,7 @@ export default function getStateFromPath(
 ): ResultState | undefined {
   let initialRoutes: InitialRouteConfig[] = [];
 
-  let screens: PathConfigMap;
+  let screens: PathConfigMap | undefined;
   let legacy = false;
 
   if (
@@ -78,23 +78,53 @@ export default function getStateFromPath(
         connectedRoutes: Object.keys(screens),
       });
     }
-  } else {
-    if (options !== undefined) {
-      // @ts-ignore
-      screens = options;
-      warnMigratePathConfig();
-    } else {
-      screens = {};
+  } else if (options !== undefined) {
+    warnMigratePathConfig();
+    // @ts-ignore
+    screens = options;
+    legacy = true;
+  }
+
+  let remaining = path
+    .replace(/\/+/g, '/') // Replace multiple slash (//) with single ones
+    .replace(/^\//, '') // Remove extra leading slash
+    .replace(/\?.*$/, ''); // Remove query params which we will handle later
+
+  // Make sure there is a trailing slash
+  remaining = remaining.endsWith('/') ? remaining : `${remaining}/`;
+
+  if (screens === undefined) {
+    // When no config is specified, use the path segments as route names
+    const routes = remaining
+      .split('/')
+      .filter(Boolean)
+      .map((segment, i, self) => {
+        const name = decodeURIComponent(segment);
+
+        if (i === self.length - 1) {
+          return { name, params: parseQueryParams(path) };
+        }
+
+        return { name };
+      });
+
+    if (routes.length) {
+      return createNestedStateObject(routes, initialRoutes);
     }
 
-    legacy = true;
+    return undefined;
   }
 
   // Create a normalized configs array which will be easier to use
   const configs = ([] as RouteConfig[])
     .concat(
       ...Object.keys(screens).map((key) =>
-        createNormalizedConfigs(key, screens, [], initialRoutes)
+        createNormalizedConfigs(
+          key,
+          screens as PathConfigMap,
+          [],
+          initialRoutes
+        )
       )
     )
     .sort((a, b) => {
@@ -137,14 +167,6 @@ export default function getStateFromPath(
       // So we move it up in the list
       return bWildcardIndex - aWildcardIndex;
     });
-
-  let remaining = path
-    .replace(/\/+/g, '/') // Replace multiple slash (//) with single ones
-    .replace(/^\//, '') // Remove extra leading slash
-    .replace(/\?.*$/, ''); // Remove query params which we will handle later
-
-  // Make sure there is a trailing slash
-  remaining = remaining.endsWith('/') ? remaining : `${remaining}/`;
 
   if (remaining === '/') {
     // We need to add special handling of empty path so navigation to empty path also works
