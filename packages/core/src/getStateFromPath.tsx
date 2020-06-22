@@ -8,7 +8,11 @@ import type {
 import warnMigratePathConfig from './warnMigratePathConfig';
 import type { PathConfigMap } from './types';
 
-type Options = { initialRouteName?: string; screens: PathConfigMap };
+type Options = {
+  initialRouteName?: string;
+  screens: PathConfigMap;
+  legacy?: boolean;
+};
 
 type ParseConfig = Record<string, (value: string) => any>;
 
@@ -53,14 +57,20 @@ type ResultState = PartialState<NavigationState> & {
  */
 export default function getStateFromPath(
   path: string,
-  options: Options = { screens: {} }
+  options?: Options
 ): ResultState | undefined {
   let initialRoutes: InitialRouteConfig[] = [];
 
   let screens: PathConfigMap;
+  let legacy = false;
 
-  if (typeof options.screens === 'object' && options.screens.path == null) {
+  if (
+    options !== undefined &&
+    typeof options.screens === 'object' &&
+    options.screens.path == null
+  ) {
     screens = options.screens;
+    legacy = options.legacy === true;
 
     if (options.initialRouteName) {
       initialRoutes.push({
@@ -69,9 +79,15 @@ export default function getStateFromPath(
       });
     }
   } else {
-    warnMigratePathConfig();
-    // @ts-ignore
-    screens = options;
+    if (options !== undefined) {
+      // @ts-ignore
+      screens = options;
+      warnMigratePathConfig();
+    } else {
+      screens = {};
+    }
+
+    legacy = true;
   }
 
   // Create a normalized configs array which will be easier to use
@@ -183,44 +199,46 @@ export default function getStateFromPath(
     result = current;
   }
 
-  // In second pass, we divide the path into segments and match piece by piece
-  // This preserves the old behaviour, but we should remove it in next major
-  while (remaining) {
-    let { routeNames, allParams, remainingPath } = matchAgainstConfigs(
-      remaining,
-      configs
-    );
+  if (legacy) {
+    // In second pass, we divide the path into segments and match piece by piece
+    // This preserves the legacy behaviour, but we should remove it in next major
+    while (remaining) {
+      let { routeNames, allParams, remainingPath } = matchAgainstConfigs(
+        remaining,
+        configs
+      );
 
-    remaining = remainingPath;
+      remaining = remainingPath;
 
-    // If we hadn't matched any segments earlier, use the path as route name
-    if (routeNames === undefined) {
-      const segments = remaining.split('/');
+      // If we hadn't matched any segments earlier, use the path as route name
+      if (routeNames === undefined) {
+        const segments = remaining.split('/');
 
-      routeNames = [decodeURIComponent(segments[0])];
-      segments.shift();
-      remaining = segments.join('/');
-    }
-
-    const state = createNestedStateObject(
-      createRouteObjects(configs, routeNames, allParams),
-      initialRoutes
-    );
-
-    if (current) {
-      // The state should be nested inside the deepest route we parsed before
-      while (current?.routes[current.index || 0].state) {
-        current = current.routes[current.index || 0].state;
+        routeNames = [decodeURIComponent(segments[0])];
+        segments.shift();
+        remaining = segments.join('/');
       }
 
-      (current as PartialState<NavigationState>).routes[
-        current?.index || 0
-      ].state = state;
-    } else {
-      result = state;
-    }
+      const state = createNestedStateObject(
+        createRouteObjects(configs, routeNames, allParams),
+        initialRoutes
+      );
 
-    current = state;
+      if (current) {
+        // The state should be nested inside the deepest route we parsed before
+        while (current?.routes[current.index || 0].state) {
+          current = current.routes[current.index || 0].state;
+        }
+
+        (current as PartialState<NavigationState>).routes[
+          current?.index || 0
+        ].state = state;
+      } else {
+        result = state;
+      }
+
+      current = state;
+    }
   }
 
   if (current == null || result == null) {

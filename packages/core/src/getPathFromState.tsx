@@ -7,7 +7,7 @@ import type {
 import warnMigratePathConfig from './warnMigratePathConfig';
 import type { PathConfig, PathConfigMap } from './types';
 
-type Options = { screens: PathConfigMap };
+type Options = { legacy?: boolean; screens: PathConfigMap };
 
 type State = NavigationState | Omit<PartialState<NavigationState>, 'stale'>;
 
@@ -63,7 +63,7 @@ const getActiveRoute = (state: State): { name: string; params?: object } => {
  */
 export default function getPathFromState(
   state?: State,
-  options: Options = { screens: {} }
+  options?: Options
 ): string {
   if (state === undefined) {
     throw Error('NavigationState not passed');
@@ -71,13 +71,22 @@ export default function getPathFromState(
 
   // Create a normalized configs object which will be easier to use
   let configs: Record<string, ConfigItem>;
+  let legacy = false;
 
-  if (typeof options.screens === 'object' && options.screens.path == null) {
+  if (
+    options !== undefined &&
+    typeof options.screens === 'object' &&
+    options.screens.path == null
+  ) {
     configs = createNormalizedConfigs(options.screens);
+    legacy = options.legacy === true;
   } else {
-    warnMigratePathConfig();
+    if (options !== undefined) {
+      warnMigratePathConfig();
+    }
     // @ts-ignore
     configs = createNormalizedConfigs(options);
+    legacy = true;
   }
 
   let path = '/';

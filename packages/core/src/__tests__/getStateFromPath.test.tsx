@@ -37,6 +37,7 @@ it('converts path string to initial state', () => {
 it('converts path string to initial state with config', () => {
   const path = '/foo/bar/sweet/apple/baz/jane?count=10&answer=42&valid=true';
   const config = {
+    legacy: true,
     screens: {
       Foo: 'foo',
       Bar: 'bar/:type/:fruit',
@@ -146,6 +147,7 @@ it('handles route without param', () => {
 it('converts path string to initial state with config with nested screens', () => {
   const path = '/foe/bar/sweet/apple/baz/jane?count=10&answer=42&valid=true';
   const config = {
+    legacy: true,
     screens: {
       Foo: {
         path: 'foo',
@@ -217,6 +219,7 @@ it('converts path string to initial state with config with nested screens', () =
 it('converts path string to initial state with config with nested screens and unused parse functions', () => {
   const path = '/foe/baz/jane?count=10&answer=42&valid=true';
   const config = {
+    legacy: true,
     screens: {
       Foo: {
         path: 'foo',
@@ -277,6 +280,7 @@ it('converts path string to initial state with config with nested screens and un
 it('handles nested object with unused configs and with parse in it', () => {
   const path = '/bar/sweet/apple/foe/bis/jane?count=10&answer=42&valid=true';
   const config = {
+    legacy: true,
     screens: {
       Foo: {
         path: 'foo',
@@ -596,6 +600,7 @@ it('handles initialRouteName included in path', () => {
 it('handles two initialRouteNames', () => {
   const path = '/bar/sweet/apple/foe/bis/jane?count=10&answer=42&valid=true';
   const config = {
+    legacy: true,
     screens: {
       Foo: {
         path: 'foo',
@@ -687,6 +692,7 @@ it('handles two initialRouteNames', () => {
 it('accepts initialRouteName without config for it', () => {
   const path = '/bar/sweet/apple/foe/bis/jane?count=10&answer=42&valid=true';
   const config = {
+    legacy: true,
     screens: {
       Foo: {
         path: 'foo',
